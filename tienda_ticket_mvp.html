@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tienda Ticket MVP - Validación de Adopción</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+      color: #333;
+    }
+
+    .container { max-width: 100%; height: 100vh; display: flex; flex-direction: column; }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .header h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
+    .header .session-id { font-size: 0.85rem; opacity: 0.9; }
+
+    .main { flex: 1; overflow-y: auto; display: flex; }
+
+    .sidebar {
+      width: 200px;
+      background: white;
+      border-right: 1px solid #e0e0e0;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+
+    .sidebar h3 { font-size: 0.9rem; color: #666; margin-bottom: 0.75rem; text-transform: uppercase; }
+
+    .nav-btn {
+      display: block;
+      width: 100%;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border: none;
+      border-radius: 4px;
+      background: #f0f0f0;
+      cursor: pointer;
+      text-align: left;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .nav-btn:hover { background: #e0e0e0; }
+    .nav-btn.active { background: #667eea; color: white; }
+
+    .content { flex: 1; padding: 1.5rem; overflow-y: auto; }
+
+    .screen { display: none; }
+    .screen.active { display: block; }
+
+    /* MÓDULO A: Caja Rápida */
+    .caja-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      height: 100%;
+    }
+
+    @media (max-width: 1024px) {
+      .caja-container { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
+
+    .productos-panel {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .search-box {
+      display: flex;
+      margin-bottom: 1rem;
+      gap: 0.5rem;
+    }
+
+    .search-box input {
+      flex: 1;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .productos-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.75rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .producto-btn {
+      padding: 1rem;
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      font-size: 0.85rem;
+      transition: all 0.2s;
+      font-weight: 500;
+    }
+
+    .producto-btn:hover { background: #667eea; color: white; border-color: #667eea; }
+    .producto-btn:active { transform: scale(0.95); }
+
+    .producto-info { font-size: 0.75rem; color: #666; margin-top: 0.25rem; }
+    .producto-btn:hover .producto-info { color: white; }
+
+    .caja-panel {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .caja-titulo { font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; }
+
+    .carrito {
+      flex: 1;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      overflow-y: auto;
+      background: #fafafa;
+    }
+
+    .carrito-vacio {
+      text-align: center;
+      color: #999;
+      padding: 2rem 0;
+    }
+
+    .item-carrito {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem;
+      background: white;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+      font-size: 0.95rem;
+    }
+
+    .item-carrito-nombre { font-weight: 500; flex: 1; }
+    .item-carrito-precio { text-align: right; min-width: 80px; }
+    .item-carrito-remove {
+      background: #ff6b6b;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-left: 0.5rem;
+    }
+
+    .totales {
+      background: #f0f0f0;
+      padding: 1rem;
+      border-radius: 4px;
+      margin-bottom: 1rem;
+    }
+
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .total-row.grande {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #667eea;
+      border-top: 2px solid #ddd;
+      padding-top: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .botones-rapidos {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .btn-rapido {
+      padding: 0.75rem;
+      border: none;
+      border-radius: 4px;
+      background: #667eea;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+
+    .btn-rapido:hover { background: #764ba2; }
+    .btn-rapido:active { transform: scale(0.95); }
+
+    .acciones-caja {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    .btn-primary {
+      padding: 1rem;
+      background: #22c55e;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover { background: #16a34a; }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+
+    .btn-secondary {
+      padding: 1rem;
+      background: #f0f0f0;
+      color: #333;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary:hover { background: #e0e0e0; }
+
+    /* MÓDULO B: Ganancia Visible */
+    .ganancia-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .ganancia-container { grid-template-columns: 1fr; }
+    }
+
+    .stat-box {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .stat-label {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: bold;
+      color: #667eea;
+    }
+
+    .stat-subtext {
+      color: #999;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .dashboard-panel {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      grid-column: 1 / -1;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .dashboard-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+    }
+
+    .dashboard-item {
+      text-align: center;
+      padding: 1rem;
+      background: #f0f0f0;
+      border-radius: 6px;
+    }
+
+    .dashboard-item-label {
+      font-size: 0.8rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .dashboard-item-value {
+      font-size: 1.75rem;
+      font-weight: bold;
+      color: #333;
+    }
+
+    /* MÓDULO C: Comparación Hora Valle/Pico */
+    .comparacion-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .comparacion-container { grid-template-columns: 1fr; }
+    }
+
+    .escenario-box {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .escenario-titulo {
+      font-size: 1.25rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .escenario-indicador {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .escenario-indicador.valle { background: #3b82f6; }
+    .escenario-indicador.pico { background: #ef4444; }
+
+    .metricas-display {
+      display: grid;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+
+    .metrica-display {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem;
+      background: #f0f0f0;
+      border-radius: 4px;
+      font-size: 0.95rem;
+    }
+
+    .metrica-label { color: #666; }
+    .metrica-valor { font-weight: bold; color: #333; }
+
+    .prueba-controls {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
+    }
+
+    .control-grupo {
+      margin-bottom: 1rem;
+    }
+
+    .control-grupo label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .control-grupo select,
+    .control-grupo input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    /* MÓDULO D: Confianza y Privacidad */
+    .privacidad-container {
+      max-width: 800px;
+    }
+
+    .privacidad-seccion {
+      background: white;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .privacidad-seccion h3 {
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      color: #667eea;
+    }
+
+    .privacidad-seccion p {
+      line-height: 1.6;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+
+    .privacidad-lista {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .privacidad-lista li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      color: #666;
+    }
+
+    .privacidad-lista li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: #22c55e;
+      font-weight: bold;
+    }
+
+    /* MÓDULO E: Encuesta */
+    .encuesta-container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .pregunta-encuesta {
+      background: white;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .pregunta-numero {
+      font-size: 0.85rem;
+      color: #999;
+      margin-bottom: 0.5rem;
+    }
+
+    .pregunta-texto {
+      font-size: 1.1rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+    }
+
+    .likert-scale {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .likert-btn {
+      flex: 1;
+      padding: 0.75rem;
+      border: 2px solid #ddd;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    .likert-btn:hover { border-color: #667eea; background: #f0f0f0; }
+    .likert-btn.selected { background: #667eea; color: white; border-color: #667eea; }
+
+    .respuesta-abierta {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+
+    .modo-investigador {
+      background: #fff3cd;
+      border: 2px solid #ffc107;
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1.5rem;
+    }
+
+    .modo-investigador h3 {
+      color: #856404;
+      margin-bottom: 0.75rem;
+    }
+
+    .footer {
+      background: white;
+      border-top: 1px solid #e0e0e0;
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.85rem;
+      color: #999;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+    }
+
+    .alert-info { background: #d1e7f7; color: #0c5aa0; }
+    .alert-success { background: #d4edda; color: #155724; }
+    .alert-warning { background: #fff3cd; color: #856404; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Tienda Ticket MVP</h1>
+      <div class="session-id">Sesión: <span id="sessionId"></span></div>
+    </div>
+
+    <div class="main">
+      <div class="sidebar">
+        <h3>Módulos</h3>
+        <button class="nav-btn active" onclick="switchScreen('caja')">📦 Caja Rápida</button>
+        <button class="nav-btn" onclick="switchScreen('ganancia')">💰 Ganancia Visible</button>
+        <button class="nav-btn" onclick="switchScreen('comparacion')">⏱️ Valle vs Pico</button>
+        <button class="nav-btn" onclick="switchScreen('privacidad')">🔒 Confianza</button>
+        <button class="nav-btn" onclick="switchScreen('encuesta')">📋 Encuesta</button>
+        <button class="nav-btn" onclick="switchScreen('investigador')">🔬 Investigador</button>
+      </div>
+
+      <div class="content">
+        <!-- MÓDULO A: Caja Rápida -->
+        <div id="caja" class="screen active">
+          <div class="caja-container">
+            <div class="productos-panel">
+              <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Buscar producto..." onkeyup="filterProductos()">
+              </div>
+              <div class="productos-grid" id="productosGrid"></div>
+              <div style="margin-top: 1rem;">
+                <input type="text" id="productoCustom" placeholder="Nombre del producto (código manual)" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; width: 100%; margin-bottom: 0.5rem;">
+                <input type="number" id="precioCustom" placeholder="Precio (Q)" style="padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; width: 100%;">
+                <button class="btn-secondary" style="width: 100%; margin-top: 0.5rem;" onclick="agregarCustom()">+ Agregar Producto</button>
+              </div>
+            </div>
+
+            <div class="caja-panel">
+              <div class="caja-titulo">Cobro Rápido</div>
+              <div class="carrito" id="carrito">
+                <div class="carrito-vacio">Agregar productos →</div>
+              </div>
+
+              <div class="botones-rapidos">
+                <button class="btn-rapido" onclick="cobrar(5)">Q5</button>
+                <button class="btn-rapido" onclick="cobrar(10)">Q10</button>
+                <button class="btn-rapido" onclick="cobrar(20)">Q20</button>
+                <button class="btn-rapido" onclick="cobrar(50)">Q50</button>
+                <button class="btn-rapido" onclick="cobrar(100)">Q100</button>
+                <button class="btn-rapido" onclick="cobrar(200)">Q200</button>
+              </div>
+
+              <div class="totales">
+                <div class="total-row">
+                  <span>Subtotal:</span>
+                  <span id="subtotal">Q0.00</span>
+                </div>
+                <div class="total-row">
+                  <span>Cambio:</span>
+                  <span id="cambio">Q0.00</span>
+                </div>
+                <div class="total-row grande">
+                  <span>Total a Pagar:</span>
+                  <span id="totalCaja">Q0.00</span>
+                </div>
+              </div>
+
+              <div class="acciones-caja">
+                <button class="btn-primary" onclick="registrarVenta()">✓ Cobrar</button>
+                <button class="btn-secondary" onclick="limpiarCaja()">✕ Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÓDULO B: Ganancia Visible -->
+        <div id="ganancia" class="screen">
+          <div class="ganancia-container">
+            <div class="stat-box">
+              <div class="stat-label">Ganancia Bruta Hoy</div>
+              <div class="stat-value" id="gananciaBruta">Q0.00</div>
+              <div class="stat-subtext">Margen: <span id="margenBruto">0%</span></div>
+            </div>
+
+            <div class="stat-box">
+              <div class="stat-label">Total Vendido</div>
+              <div class="stat-value" id="totalVendido">Q0.00</div>
+              <div class="stat-subtext">
+                <span id="numTransacciones">0</span> transacciones
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-panel">
+            <div style="font-size: 1.1rem; font-weight: bold; margin-bottom: 1rem;">Resumen del Día</div>
+            <div class="dashboard-grid">
+              <div class="dashboard-item">
+                <div class="dashboard-item-label">Costo Total</div>
+                <div class="dashboard-item-value" id="costoTotal">Q0.00</div>
+              </div>
+              <div class="dashboard-item">
+                <div class="dashboard-item-label">Transacciones</div>
+                <div class="dashboard-item-value" id="numTrans">0</div>
+              </div>
+              <div class="dashboard-item">
+                <div class="dashboard-item-label">Promedio/Venta</div>
+                <div class="dashboard-item-value" id="promVenta">Q0.00</div>
+              </div>
+            </div>
+
+            <button class="btn-secondary" onclick="editarCostos()" style="width: 100%; margin-top: 1rem;">✏️ Editar Costos de Productos</button>
+          </div>
+        </div>
+
+        <!-- MÓDULO C: Comparación Hora Valle / Pico -->
+        <div id="comparacion" class="screen">
+          <div class="modo-investigador">
+            <h3>🔬 Modo Investigador Activo</h3>
+            <p>Este módulo captura automáticamente tiempos, clics y errores en dos escenarios: hora valle y hora pico.</p>
+          </div>
+
+          <div class="prueba-controls">
+            <h2 style="margin-bottom: 1.5rem;">Configurar Prueba</h2>
+
+            <div class="control-grupo">
+              <label for="participantCode">Código Participante (anónimo):</label>
+              <input type="text" id="participantCode" placeholder="Ej: P001, P002..." value="">
+            </div>
+
+            <div class="control-grupo">
+              <label for="scenarioSelect">Seleccionar Escenario:</label>
+              <select id="scenarioSelect">
+                <option value="">-- Seleccionar --</option>
+                <option value="valle">Hora Valle (sin presión)</option>
+                <option value="pico">Hora Pico (con presión)</option>
+              </select>
+            </div>
+
+            <div class="grid-2">
+              <button class="btn-primary" onclick="startTest()">▶ Iniciar Prueba</button>
+              <button class="btn-secondary" onclick="resetComparacion()">↻ Limpiar Datos</button>
+            </div>
+          </div>
+
+          <div class="comparacion-container">
+            <div class="escenario-box">
+              <div class="escenario-titulo">
+                <span class="escenario-indicador valle"></span>
+                Hora Valle
+              </div>
+              <div class="metricas-display" id="valleMetricas">
+                <div class="alert alert-info">Inicia una prueba para capturar datos</div>
+              </div>
+            </div>
+
+            <div class="escenario-box">
+              <div class="escenario-titulo">
+                <span class="escenario-indicador pico"></span>
+                Hora Pico
+              </div>
+              <div class="metricas-display" id="picoMetricas">
+                <div class="alert alert-info">Inicia una prueba para capturar datos</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 2rem;">
+            <button class="btn-secondary" onclick="exportarComparacion()">📥 Exportar Resultados (CSV)</button>
+          </div>
+        </div>
+
+        <!-- MÓDULO D: Confianza y Privacidad -->
+        <div id="privacidad" class="screen">
+          <div class="privacidad-container">
+            <div class="privacidad-seccion">
+              <h3>📊 Qué información registra este prototipo</h3>
+              <ul class="privacidad-lista">
+                <li>Productos que agregas al carrito</li>
+                <li>Montos de venta registrados</li>
+                <li>Tiempos de cada operación (en modo pico/valle)</li>
+                <li>Número de clics o interacciones</li>
+                <li>Tus respuestas a la encuesta final</li>
+              </ul>
+            </div>
+
+            <div class="privacidad-seccion">
+              <h3>🎯 Para qué se utiliza</h3>
+              <p>Estos datos se usan únicamente para:</p>
+              <ul class="privacidad-lista">
+                <li>Medir la facilidad de uso de la herramienta</li>
+                <li>Entender si es práctica durante horas de venta pico</li>
+                <li>Recopilar tu opinión sobre el proceso de cobro</li>
+                <li>Mejorar la experiencia antes de una versión real</li>
+              </ul>
+            </div>
+
+            <div class="privacidad-seccion">
+              <h3>🔒 Ubicación de tus datos</h3>
+              <p><strong>Todos los datos permanecen únicamente en tu dispositivo.</strong> No se envían a servidores externos. Cuando cierres esta ventana, puedes borrar todo.</p>
+            </div>
+
+            <div class="privacidad-seccion">
+              <h3>🗑️ Cómo borrar todo</h3>
+              <p>Haz clic en el botón de abajo. Se eliminarán todas las ventas, pruebas y respuestas registradas en este navegador.</p>
+              <button class="btn-secondary" onclick="borrarTodosDatos()" style="width: 100%; margin-top: 1rem;">🗑️ Borrar Todos los Datos</button>
+            </div>
+
+            <div class="privacidad-seccion" style="background: #fff3cd; border-left: 4px solid #ffc107;">
+              <h3 style="color: #856404;">⚠️ Nota Legal</h3>
+              <p>Este es un prototipo experimental para validar una idea. <strong>No es un sistema de facturación oficial</strong> ni reemplaza las obligaciones con autoridades tributarias como la SAT.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- MÓDULO E: Encuesta -->
+        <div id="encuesta" class="screen">
+          <div class="encuesta-container">
+            <div style="background: white; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <h2 style="margin-bottom: 1rem;">Tu Opinión</h2>
+              <p style="color: #666; margin-bottom: 1rem;">Por favor, responde estas preguntas basándote en tu experiencia usando Tienda Ticket hoy.</p>
+            </div>
+
+            <form id="encuestaForm">
+              <div class="pregunta-encuesta">
+                <div class="pregunta-numero">Pregunta 1 de 5</div>
+                <div class="pregunta-texto">¿Qué tan fácil fue registrar una venta?</div>
+                <div class="likert-scale">
+                  <button type="button" class="likert-btn" onclick="selectRating(1, 'q1')">1<br><small>Muy difícil</small></button>
+                  <button type="button" class="likert-btn" onclick="selectRating(2, 'q1')">2</button>
+                  <button type="button" class="likert-btn" onclick="selectRating(3, 'q1')">3<br><small>Normal</small></button>
+                  <button type="button" class="likert-btn" onclick="selectRating(4, 'q1')">4</button>
+                  <button type="button" class="likert-btn" onclick="selectRating(5, 'q1')">5<br><small>Muy fácil</small></button>
+                </div>
+                <input type="hidden" id="q1" value="">
+              </div>
+
+              <div class="pregunta-encuesta">
+                <div class="pregunta-numero">Pregunta 2 de 5</div>
+                <div class="pregunta-texto">¿Qué tan rápido sintió el proceso de cobro?</div>
+                <div class="likert-scale">
+                  <button type="button" class="likert-btn" onclick="selectRating(1, 'q2')">1<br><small>Muy lento</small></button>
+                  <button type="button" class="likert-btn" onclick="selectRating(2, 'q2')">2</button>
+                  <button type="button" class="likert-btn" onclick="selectRating(3, 'q2')">3<br><small>Normal</small></button>
+                  <button type="button" class="likert-btn" onclick="selectRating(4, 'q2')">4</button>
+                  <button type="button" class="likert-btn" onclick="selectRating(5, 'q2')">5<br><small>Muy rápido</small></button>
+                </div>
+                <input type="hidden" id="q2" value="">
+              </div>
+
+              <div class="pregunta-encuesta">
+                <div class="pregunta-numero">Pregunta 3 de 5</div>
+                <div class="pregunta-texto">¿Qué tan útil le parece conocer su ganancia después de vender?</div>
+                <div class="likert-scale">
+                  <button type="button" class="likert-btn" onclick="selectRating(1, 'q3')">1<br><small>Nada útil</small></button>
+                  <button type="button" class="likert-btn" onclick="selectRating(2, 'q3')">2</button>
+                  <button type="button" class="likert-btn" onclick="selectRating(3, 'q3')">3<br><small>Neutral</small></button>
+                  <button type="button" class="likert-btn" onclick="selectRating(4, 'q3')">4</button>
+                  <button type="button" class="likert-btn" onclick="selectRating(5, 'q3')">5<br><small>Muy útil</small></button>
+                </div>
+                <input type="hidden" id="q3" value="">
+              </div>
+
+              <div class="pregunta-encuesta">
+                <div class="pregunta-numero">Pregunta 4 de 5</div>
+                <div class="pregunta-texto">¿Qué tan dispuesto estaría a usar una herramienta así durante su jornada de venta?</div>
+                <div class="likert-scale">
+                  <button type="button" class="likert-btn" onclick="selectRating(1, 'q4')">1<br><small>Nada dispuesto</small></button>
+                  <button type="button" class="likert-btn" onclick="selectRating(2, 'q4')">2</button>
+                  <button type="button" class="likert-btn" onclick="selectRating(3, 'q4')">3<br><small>Tal vez</small></button>
+                  <button type="button" class="likert-btn" onclick="selectRating(4, 'q4')">4</button>
+                  <button type="button" class="likert-btn" onclick="selectRating(5, 'q4')">5<br><small>Muy dispuesto</small></button>
+                </div>
+                <input type="hidden" id="q4" value="">
+              </div>
+
+              <div class="pregunta-encuesta">
+                <div class="pregunta-numero">Pregunta 5 de 5</div>
+                <div class="pregunta-texto">¿Qué fue lo que más le dificultó utilizarla? (opcional)</div>
+                <textarea class="respuesta-abierta" id="q5" placeholder="Comparte tu experiencia..."></textarea>
+              </div>
+
+              <div class="grid-2" style="margin-top: 1.5rem;">
+                <button type="button" class="btn-primary" onclick="submitEncuesta()">✓ Enviar Respuestas</button>
+                <button type="button" class="btn-secondary" onclick="exportarEncuesta()">📥 Exportar Encuesta</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- MODO INVESTIGADOR -->
+        <div id="investigador" class="screen">
+          <div class="modo-investigador">
+            <h3>🔬 Modo Investigador</h3>
+            <p>Sección exclusiva para facilitar pruebas con tenderos. Aquí puedes configurar sesiones, ver métricas automáticas y exportar resultados.</p>
+          </div>
+
+          <div class="prueba-controls">
+            <h2 style="margin-bottom: 1.5rem;">Configuración de Sesión</h2>
+
+            <div class="grid-2">
+              <div class="control-grupo">
+                <label for="researchParticipant">Código Participante:</label>
+                <input type="text" id="researchParticipant" placeholder="P001, P002..." value="">
+              </div>
+
+              <div class="control-grupo">
+                <label for="researchScenario">Escenario:</label>
+                <select id="researchScenario">
+                  <option value="valle">Hora Valle</option>
+                  <option value="pico">Hora Pico</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="control-grupo">
+              <label for="researchNotes">Observaciones del Facilitador:</label>
+              <textarea id="researchNotes" placeholder="Notas sobre el comportamiento, dificultades, comentarios..." style="width: 100%; min-height: 120px; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-family: inherit;"></textarea>
+            </div>
+
+            <button class="btn-primary" onclick="startResearchSession()" style="width: 100%;">▶ Iniciar Sesión de Investigación</button>
+          </div>
+
+          <div class="prueba-controls" style="margin-top: 1.5rem;">
+            <h2 style="margin-bottom: 1rem;">Resultados Registrados</h2>
+            <div id="researchResults"></div>
+            <div style="text-align: center; margin-top: 1rem; gap: 0.5rem; display: flex; justify-content: center;">
+              <button class="btn-secondary" onclick="exportarInvestigador()">📥 Exportar Todos (CSV)</button>
+              <button class="btn-secondary" onclick="resetInvestigador()">🗑️ Limpiar Sesiones</button>
+            </div>
+          </div>
+
+          <div class="privacidad-seccion" style="margin-top: 1.5rem;">
+            <h3>📋 Protocolo de Prueba (10-15 minutos)</h3>
+            <ol style="padding-left: 2rem; line-height: 1.8;">
+              <li><strong>Introducción (1 min):</strong> Explica al tendero que va a probar un prototipo de herramienta de cobro rápido.</li>
+              <li><strong>Familiarización (2 min):</strong> Muéstrale los productos disponibles, cómo buscar, y los botones de cobro rápido.</li>
+              <li><strong>Hora Valle (3-4 min):</strong> Pídele que registre 3-5 ventas sin presión. El sistema capturará tiempos y clics.</li>
+              <li><strong>Hora Pico (3-4 min):</strong> Simula presión: léele clientes ficticios rápidamente, pídele que cierre operaciones más rápido.</li>
+              <li><strong>Encuesta (3-5 min):</strong> Pídele que responda las 5 preguntas sobre facilidad, velocidad, utilidad y disposición a usar.</li>
+              <li><strong>Observaciones:</strong> Registra cualquier dificultad, comentario útil o comportamiento inesperado.</li>
+            </ol>
+          </div>
+
+          <div class="privacidad-seccion" style="margin-top: 1.5rem;">
+            <h3>✅ Criterios de Éxito Preliminares</h3>
+            <ul class="privacidad-lista">
+              <li><strong>Desabilidad:</strong> Mediana de utilidad ≥ 4/5. Intención de uso: al menos 4 de 5 responden "muy dispuesto".</li>
+              <li><strong>Usabilidad:</strong> 80% completa tareas sin ayuda. Mediana de facilidad ≥ 4/5.</li>
+              <li><strong>Viabilidad Operativa:</strong> Al menos 4 de 5 completan el escenario pico sin abandonar transacciones.</li>
+              <li><strong>Viabilidad Técnica:</strong> No hay errores críticos. Los datos persisten y se exportan correctamente.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Prototipo MVP para validación experimental • Todos los datos permanecen en tu dispositivo
+    </div>
+  </div>
+
+  <script>
+    // ===== INICIALIZACIÓN =====
+    const SESSION_ID = 'SESSION_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+    // Catálogo de productos
+    const PRODUCTOS = [
+      { id: 1, nombre: 'Arroz 1kg', precio: 8.50, costo: 5.50 },
+      { id: 2, nombre: 'Frijoles 1kg', precio: 7.50, costo: 4.50 },
+      { id: 3, nombre: 'Aceite 1L', precio: 15.00, costo: 10.00 },
+      { id: 4, nombre: 'Sal 500g', precio: 2.50, costo: 1.50 },
+      { id: 5, nombre: 'Azúcar 1kg', precio: 6.00, costo: 3.50 },
+      { id: 6, nombre: 'Café 200g', precio: 12.00, costo: 7.00 },
+      { id: 7, nombre: 'Leche 1L', precio: 9.00, costo: 5.50 },
+      { id: 8, nombre: 'Pan (unidad)', precio: 1.50, costo: 0.80 },
+      { id: 9, nombre: 'Huevos (docena)', precio: 22.00, costo: 14.00 },
+      { id: 10, nombre: 'Mantequilla 500g', precio: 18.00, costo: 11.00 },
+      { id: 11, nombre: 'Queso 500g', precio: 25.00, costo: 15.00 },
+      { id: 12, nombre: 'Jamón rebanado', precio: 20.00, costo: 12.00 },
+      { id: 13, nombre: 'Atún enlatado', precio: 5.00, costo: 2.50 },
+      { id: 14, nombre: 'Fideo 500g', precio: 3.50, costo: 1.80 },
+      { id: 15, nombre: 'Maíz enlatado', precio: 4.50, costo: 2.30 },
+      { id: 16, nombre: 'Chiles frescos (kg)', precio: 12.00, costo: 6.00 },
+      { id: 17, nombre: 'Cebolla (kg)', precio: 5.00, costo: 2.50 },
+      { id: 18, nombre: 'Tomate (kg)', precio: 6.50, costo: 3.50 },
+      { id: 19, nombre: 'Plátano (racimo)', precio: 8.00, costo: 4.00 },
+      { id: 20, nombre: 'Aguacate (unidad)', precio: 3.50, costo: 1.75 }
+    ];
+
+    // Estado global
+    let carrito = [];
+    let ventasRegistradas = [];
+    let costos = {};
+    let comparacionData = { valle: null, pico: null };
+    let testActive = false;
+    let testScenario = null;
+    let testStart = null;
+    let testClicks = 0;
+    let testErrors = 0;
+    let testAbandoned = false;
+
+    // Inicializar
+    document.getElementById('sessionId').textContent = SESSION_ID;
+    renderProductos();
+    cargarDatos();
+
+    function renderProductos() {
+      const grid = document.getElementById('productosGrid');
+      grid.innerHTML = '';
+      PRODUCTOS.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'producto-btn';
+        btn.innerHTML = `<strong>${p.nombre}</strong><div class="producto-info">Q${p.precio.toFixed(2)}</div>`;
+        btn.onclick = () => agregarAlCarrito(p);
+        grid.appendChild(btn);
+      });
+    }
+
+    function filterProductos() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const botones = document.querySelectorAll('.producto-btn');
+      botones.forEach(btn => {
+        btn.style.display = btn.textContent.toLowerCase().includes(search) ? 'block' : 'none';
+      });
+    }
+
+    function agregarAlCarrito(producto) {
+      testClicks++;
+      const item = carrito.find(i => i.id === producto.id);
+      if (item) {
+        item.cantidad++;
+      } else {
+        carrito.push({ ...producto, cantidad: 1 });
+      }
+      actualizarCarrito();
+    }
+
+    function agregarCustom() {
+      testClicks++;
+      const nombre = document.getElementById('productoCustom').value;
+      const precio = parseFloat(document.getElementById('precioCustom').value);
+      if (!nombre || !precio || precio <= 0) {
+        alert('Por favor, completa los campos correctamente');
+        return;
+      }
+      carrito.push({ id: Date.now(), nombre, precio, cantidad: 1, costo: precio * 0.5 });
+      document.getElementById('productoCustom').value = '';
+      document.getElementById('precioCustom').value = '';
+      actualizarCarrito();
+    }
+
+    function actualizarCarrito() {
+      const carritoDiv = document.getElementById('carrito');
+      if (carrito.length === 0) {
+        carritoDiv.innerHTML = '<div class="carrito-vacio">Agregar productos →</div>';
+        document.getElementById('subtotal').textContent = 'Q0.00';
+        document.getElementById('cambio').textContent = 'Q0.00';
+        document.getElementById('totalCaja').textContent = 'Q0.00';
+        return;
+      }
+
+      carritoDiv.innerHTML = carrito.map(item => `
+        <div class="item-carrito">
+          <div class="item-carrito-nombre">${item.nombre} x${item.cantidad}</div>
+          <div class="item-carrito-precio">Q${(item.precio * item.cantidad).toFixed(2)}</div>
+          <button class="item-carrito-remove" onclick="quitarDelCarrito(${item.id})">✕</button>
+        </div>
+      `).join('');
+
+      const subtotal = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+      document.getElementById('subtotal').textContent = 'Q' + subtotal.toFixed(2);
+      document.getElementById('totalCaja').textContent = 'Q' + subtotal.toFixed(2);
+      document.getElementById('cambio').textContent = 'Q0.00';
+    }
+
+    function quitarDelCarrito(id) {
+      testClicks++;
+      carrito = carrito.filter(i => i.id !== id);
+      actualizarCarrito();
+    }
+
+    function cobrar(monto) {
+      testClicks++;
+      const subtotal = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+      const cambio = monto - subtotal;
+      if (cambio < 0) {
+        alert('Monto insuficiente');
+        testErrors++;
+        return;
+      }
+      document.getElementById('cambio').textContent = 'Q' + cambio.toFixed(2);
+    }
+
+    function registrarVenta() {
+      testClicks++;
+      if (carrito.length === 0) {
+        alert('El carrito está vacío');
+        testErrors++;
+        return;
+      }
+
+      const subtotal = carrito.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+      const costo = carrito.reduce((sum, item) => sum + ((costos[item.id] || item.costo) * item.cantidad), 0);
+      const ganancia = subtotal - costo;
+
+      const venta = {
+        id: Date.now(),
+        timestamp: new Date().toLocaleString(),
+        items: [...carrito],
+        total: subtotal,
+        costo,
+        ganancia,
+        margen: ((ganancia / subtotal) * 100).toFixed(2)
+      };
+
+      ventasRegistradas.push(venta);
+      carrito = [];
+      actualizarCarrito();
+      actualizarGanancia();
+      guardarDatos();
+
+      // Mostrar feedback
+      const feedback = document.createElement('div');
+      feedback.className = 'alert alert-success';
+      feedback.textContent = `✓ Venta registrada: Q${subtotal.toFixed(2)} | Ganancia: Q${ganancia.toFixed(2)}`;
+      document.querySelector('.caja-panel').insertBefore(feedback, document.querySelector('.caja-titulo').nextElementSibling);
+      setTimeout(() => feedback.remove(), 3000);
+    }
+
+    function limpiarCaja() {
+      carrito = [];
+      actualizarCarrito();
+    }
+
+    function actualizarGanancia() {
+      const totalVendido = ventasRegistradas.reduce((sum, v) => sum + v.total, 0);
+      const gananciaBruta = ventasRegistradas.reduce((sum, v) => sum + v.ganancia, 0);
+      const costoTotal = ventasRegistradas.reduce((sum, v) => sum + v.costo, 0);
+      const margenPromedio = totalVendido > 0 ? ((gananciaBruta / totalVendido) * 100).toFixed(1) : '0';
+
+      document.getElementById('gananciaBruta').textContent = 'Q' + gananciaBruta.toFixed(2);
+      document.getElementById('margenBruto').textContent = margenPromedio + '%';
+      document.getElementById('totalVendido').textContent = 'Q' + totalVendido.toFixed(2);
+      document.getElementById('numTransacciones').textContent = ventasRegistradas.length;
+      document.getElementById('costoTotal').textContent = 'Q' + costoTotal.toFixed(2);
+      document.getElementById('numTrans').textContent = ventasRegistradas.length;
+      document.getElementById('promVenta').textContent = ventasRegistradas.length > 0 ? 'Q' + (totalVendido / ventasRegistradas.length).toFixed(2) : 'Q0.00';
+    }
+
+    function editarCostos() {
+      const input = prompt('Ingresa el ID del producto y su nuevo costo (formato: ID,COSTO ej: 1,4.00):');
+      if (!input) return;
+      const [id, costo] = input.split(',');
+      costos[id] = parseFloat(costo);
+      guardarDatos();
+      actualizarGanancia();
+    }
+
+    // Comparación hora valle / pico
+    function startTest() {
+      const scenario = document.getElementById('scenarioSelect').value;
+      if (!scenario) {
+        alert('Selecciona un escenario');
+        return;
+      }
+
+      testScenario = scenario;
+      testStart = Date.now();
+      testClicks = 0;
+      testErrors = 0;
+      testAbandoned = false;
+      testActive = true;
+
+      alert(`Prueba iniciada: ${scenario === 'valle' ? 'Hora Valle' : 'Hora Pico'}\n\nPor favor, registra 3 ventas. El sistema capturará tiempos y clics automáticamente.`);
+      switchScreen('caja');
+    }
+
+    function endTest() {
+      if (!testActive) return;
+
+      const duration = Math.round((Date.now() - testStart) / 1000);
+      const data = {
+        participant: document.getElementById('participantCode').value || 'Anónimo',
+        scenario: testScenario,
+        timestamp: new Date().toLocaleString(),
+        duration,
+        clicks: testClicks,
+        errors: testErrors,
+        transacciones: ventasRegistradas.length,
+        abandoned: testAbandoned
+      };
+
+      comparacionData[testScenario] = data;
+      testActive = false;
+
+      renderComparacion();
+      guardarDatos();
+      alert(`Prueba completada:\n\nDuración: ${duration}s\nClics: ${testClicks}\nErrores: ${testErrors}`);
+    }
+
+    function renderComparacion() {
+      if (comparacionData.valle) {
+        const v = comparacionData.valle;
+        document.getElementById('valleMetricas').innerHTML = `
+          <div class="metrica-display"><span class="metrica-label">Duración:</span><span class="metrica-valor">${v.duration}s</span></div>
+          <div class="metrica-display"><span class="metrica-label">Clics:</span><span class="metrica-valor">${v.clicks}</span></div>
+          <div class="metrica-display"><span class="metrica-label">Errores:</span><span class="metrica-valor">${v.errors}</span></div>
+          <div class="metrica-display"><span class="metrica-label">Transacciones:</span><span class="metrica-valor">${v.transacciones}</span></div>
+        `;
+      }
+
+      if (comparacionData.pico) {
+        const p = comparacionData.pico;
+        document.getElementById('picoMetricas').innerHTML = `
+          <div class="metrica-display"><span class="metrica-label">Duración:</span><span class="metrica-valor">${p.duration}s</span></div>
+          <div class="metrica-display"><span class="metrica-label">Clics:</span><span class="metrica-valor">${p.clicks}</span></div>
+          <div class="metrica-display"><span class="metrica-label">Errores:</span><span class="metrica-valor">${p.errors}</span></div>
+          <div class="metrica-display"><span class="metrica-label">Transacciones:</span><span class="metrica-valor">${p.transacciones}</span></div>
+        `;
+      }
+    }
+
+    function resetComparacion() {
+      comparacionData = { valle: null, pico: null };
+      ventasRegistradas = [];
+      carrito = [];
+      actualizarCarrito();
+      document.getElementById('participantCode').value = '';
+      document.getElementById('scenarioSelect').value = '';
+      document.getElementById('valleMetricas').innerHTML = '<div class="alert alert-info">Inicia una prueba para capturar datos</div>';
+      document.getElementById('picoMetricas').innerHTML = '<div class="alert alert-info">Inicia una prueba para capturar datos</div>';
+      guardarDatos();
+    }
+
+    // Encuesta
+    function selectRating(rating, questionId) {
+      document.getElementById(questionId).value = rating;
+      document.querySelectorAll(`[onclick*="selectRating"][onclick*="${questionId}"]`).forEach(btn => {
+        btn.classList.remove('selected');
+      });
+      event.target.classList.add('selected');
+    }
+
+    function submitEncuesta() {
+      const responses = {
+        q1: document.getElementById('q1').value,
+        q2: document.getElementById('q2').value,
+        q3: document.getElementById('q3').value,
+        q4: document.getElementById('q4').value,
+        q5: document.getElementById('q5').value
+      };
+
+      if (!responses.q1 || !responses.q2 || !responses.q3 || !responses.q4) {
+        alert('Por favor, responde todas las preguntas de escala');
+        return;
+      }
+
+      alert('Encuesta enviada. Gracias por tu participación.');
+      guardarDatos();
+    }
+
+    // Exportar
+    function exportarComparacion() {
+      let csv = 'Participant,Scenario,Timestamp,Duration(s),Clicks,Errors,Transactions\n';
+
+      if (comparacionData.valle) {
+        const v = comparacionData.valle;
+        csv += `${v.participant},${v.scenario},${v.timestamp},${v.duration},${v.clicks},${v.errors},${v.transacciones}\n`;
+      }
+
+      if (comparacionData.pico) {
+        const p = comparacionData.pico;
+        csv += `${p.participant},${p.scenario},${p.timestamp},${p.duration},${p.clicks},${p.errors},${p.transacciones}\n`;
+      }
+
+      downloadCSV(csv, 'comparacion_valle_pico.csv');
+    }
+
+    function exportarEncuesta() {
+      const responses = {
+        q1: document.getElementById('q1').value,
+        q2: document.getElementById('q2').value,
+        q3: document.getElementById('q3').value,
+        q4: document.getElementById('q4').value,
+        q5: document.getElementById('q5').value
+      };
+
+      let csv = 'Pregunta,Respuesta\n';
+      csv += `Facilidad,${responses.q1}\n`;
+      csv += `Velocidad,${responses.q2}\n`;
+      csv += `Utilidad,${responses.q3}\n`;
+      csv += `Disposición,${responses.q4}\n`;
+      csv += `Dificultades,"${responses.q5}"\n`;
+
+      downloadCSV(csv, 'encuesta_respuestas.csv');
+    }
+
+    function exportarInvestigador() {
+      let csv = 'SessionID,Participant,Scenario,Timestamp,Duration(s),Clicks,Errors,Notes\n';
+      const sessions = JSON.parse(localStorage.getItem('researchSessions') || '[]');
+      sessions.forEach(session => {
+        csv += `${SESSION_ID},${session.participant},${session.scenario},${session.timestamp},${session.duration},${session.clicks},${session.errors},"${session.notes}"\n`;
+      });
+      downloadCSV(csv, 'investigacion_sesiones.csv');
+    }
+
+    function downloadCSV(content, filename) {
+      const blob = new Blob([content], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    }
+
+    // Modo Investigador
+    function startResearchSession() {
+      const participant = document.getElementById('researchParticipant').value;
+      const scenario = document.getElementById('researchScenario').value;
+
+      if (!participant) {
+        alert('Por favor, ingresa un código de participante');
+        return;
+      }
+
+      document.getElementById('participantCode').value = participant;
+      document.getElementById('scenarioSelect').value = scenario;
+
+      startTest();
+
+      setTimeout(() => {
+        endTest();
+        const notes = document.getElementById('researchNotes').value;
+        const sessions = JSON.parse(localStorage.getItem('researchSessions') || '[]');
+
+        const session = {
+          ...comparacionData[scenario],
+          notes
+        };
+
+        sessions.push(session);
+        localStorage.setItem('researchSessions', JSON.stringify(sessions));
+
+        renderResearchResults();
+        document.getElementById('researchNotes').value = '';
+      }, 10000); // Simular 10 segundos de prueba
+    }
+
+    function renderResearchResults() {
+      const sessions = JSON.parse(localStorage.getItem('researchSessions') || '[]');
+      if (sessions.length === 0) {
+        document.getElementById('researchResults').innerHTML = '<div class="alert alert-info">No hay sesiones registradas aún</div>';
+        return;
+      }
+
+      let html = '<table style="width:100%; border-collapse: collapse;">';
+      html += '<tr style="background: #f0f0f0;"><th style="padding: 0.5rem; text-align: left; border: 1px solid #ddd;">Participante</th><th style="padding: 0.5rem; text-align: left; border: 1px solid #ddd;">Escenario</th><th style="padding: 0.5rem; text-align: left; border: 1px solid #ddd;">Duración</th><th style="padding: 0.5rem; text-align: left; border: 1px solid #ddd;">Clics</th><th style="padding: 0.5rem; text-align: left; border: 1px solid #ddd;">Errores</th></tr>';
+
+      sessions.forEach(session => {
+        html += `<tr>
+          <td style="padding: 0.5rem; border: 1px solid #ddd;">${session.participant}</td>
+          <td style="padding: 0.5rem; border: 1px solid #ddd;">${session.scenario}</td>
+          <td style="padding: 0.5rem; border: 1px solid #ddd;">${session.duration}s</td>
+          <td style="padding: 0.5rem; border: 1px solid #ddd;">${session.clicks}</td>
+          <td style="padding: 0.5rem; border: 1px solid #ddd;">${session.errors}</td>
+        </tr>`;
+      });
+
+      html += '</table>';
+      document.getElementById('researchResults').innerHTML = html;
+    }
+
+    function resetInvestigador() {
+      localStorage.removeItem('researchSessions');
+      renderResearchResults();
+    }
+
+    // Navegación
+    function switchScreen(screenId) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      if (screenId === 'comparacion' && comparacionData.valle || comparacionData.pico) {
+        renderComparacion();
+      }
+
+      if (screenId === 'investigador') {
+        renderResearchResults();
+      }
+    }
+
+    // Persistencia de datos
+    function guardarDatos() {
+      localStorage.setItem('tiendaTicketData', JSON.stringify({
+        carrito,
+        ventasRegistradas,
+        costos,
+        comparacionData,
+        encuesta: {
+          q1: document.getElementById('q1').value,
+          q2: document.getElementById('q2').value,
+          q3: document.getElementById('q3').value,
+          q4: document.getElementById('q4').value,
+          q5: document.getElementById('q5').value
+        }
+      }));
+    }
+
+    function cargarDatos() {
+      const datos = JSON.parse(localStorage.getItem('tiendaTicketData') || '{}');
+      if (datos.carrito) carrito = datos.carrito;
+      if (datos.ventasRegistradas) ventasRegistradas = datos.ventasRegistradas;
+      if (datos.costos) costos = datos.costos;
+      if (datos.comparacionData) comparacionData = datos.comparacionData;
+      if (datos.encuesta) {
+        document.getElementById('q1').value = datos.encuesta.q1 || '';
+        document.getElementById('q2').value = datos.encuesta.q2 || '';
+        document.getElementById('q3').value = datos.encuesta.q3 || '';
+        document.getElementById('q4').value = datos.encuesta.q4 || '';
+        document.getElementById('q5').value = datos.encuesta.q5 || '';
+      }
+      actualizarCarrito();
+      actualizarGanancia();
+      renderComparacion();
+    }
+
+    function borrarTodosDatos() {
+      if (confirm('¿Estás seguro de que quieres borrar TODOS los datos? Esta acción no se puede deshacer.')) {
+        localStorage.removeItem('tiendaTicketData');
+        carrito = [];
+        ventasRegistradas = [];
+        costos = {};
+        comparacionData = { valle: null, pico: null };
+        document.getElementById('q1').value = '';
+        document.getElementById('q2').value = '';
+        document.getElementById('q3').value = '';
+        document.getElementById('q4').value = '';
+        document.getElementById('q5').value = '';
+        actualizarCarrito();
+        actualizarGanancia();
+        document.getElementById('valleMetricas').innerHTML = '<div class="alert alert-info">Inicia una prueba para capturar datos</div>';
+        document.getElementById('picoMetricas').innerHTML = '<div class="alert alert-info">Inicia una prueba para capturar datos</div>';
+        alert('Todos los datos han sido eliminados.');
+      }
+    }
+  </script>
+</body>
+</html>
